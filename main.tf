@@ -120,3 +120,38 @@ resource "aws_route" "nat" {
   nat_gateway_id         = aws_nat_gateway.this[0].id
   destination_cidr_block = "0.0.0.0/0"
 }
+
+# DB 서브넷
+resource "aws_subnet" "db" {
+  count = var.create_db_subnet ? length(data.aws_availability_zones.azs.names) : 0
+
+  vpc_id            = aws_vpc.this.id
+  cidr_block        = cidrsubnet(aws_vpc.this.cidr_block, 8, count.index + 20)
+  availability_zone = data.aws_availability_zones.azs.names[count.index]
+
+  tags = {
+    "Name" = format(
+      "${var.environment}-db-subnet-%s",
+      substr(data.aws_availability_zones.azs.names[count.index], -1, 1),
+    )
+  }
+}
+
+# DB 서브넷용 라우팅 테이블
+resource "aws_route_table" "db" {
+  count = var.create_db_subnet ? 1 : 0
+
+  vpc_id = aws_vpc.this.id
+
+  tags = {
+    "Name" = "${var.environment}-db-rtb"
+  }
+}
+
+# 각각의 DB 서브넷에 위에서 생성한 라우팅 테이블 연동
+resource "aws_route_table_association" "db" {
+  count = var.create_db_subnet ? length(aws_subnet.db) : 0
+
+  subnet_id      = aws_subnet.db[count.index].id
+  route_table_id = aws_route_table.db[0].id
+}

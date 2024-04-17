@@ -14,3 +14,9 @@ variable "create_private_subnet" {
   type        = bool
   default     = false
 }
+
+variable "create_db_subnet" {
+  description = "DB 서브넷 생성"
+  type        = bool
+  default     = true
+}
